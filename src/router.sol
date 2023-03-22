@@ -39,7 +39,9 @@ contract Router {
         IUniswapV2ERC20(tokenB).transferFrom(msg.sender, address(pair), amtB);
 
         // mint LP tokens
-        IUniswapV2Pair(pair).mint(msg.sender);
+        return IUniswapV2Pair(pair).mint(msg.sender);
+
+
     } 
 
     //remove liquidity 
