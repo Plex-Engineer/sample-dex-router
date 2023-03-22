@@ -1,0 +1,5 @@
+{
+    "solidity.compileUsingRemoteVersion": "v0.8.18+commit.87f61d96",
+    "solidity.defaultCompiler": "localFile",
+    "solidity.compileUsingLocalVersion": "/Users/tkkwon/Github/Plex/sample-dex-router/soljson-v0.8.18+commit.87f61d96.js"
+}
