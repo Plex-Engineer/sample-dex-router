@@ -6,8 +6,9 @@ import "src/testERC20.sol";
 import "src/UniswapV2Factory.sol";
 import "src/router.sol";
 import "src/interfaces/IUniswapV2Pair.sol";
+import "script/csvWriter.s.sol";
 
-contract SetUp is Test {
+contract SetUp is Test, CSVWriter {
     TestERC20 testToken1;
     TestERC20 testToken2;
     UniswapV2Factory factory;
@@ -26,9 +27,6 @@ contract SetUp is Test {
 }
 
 contract RouterTest is SetUp {
-    uint failedTests;
-    uint success;
-
     function testNeedAllowance() public {
         vm.startPrank(tester);
         //will revert since no allowance was set
@@ -45,13 +43,13 @@ contract RouterTest is SetUp {
 
     function testAddLiquidity() public {
         vm.startPrank(tester);
-        testToken1.approve(address(router), 1000 ether);
-        testToken2.approve(address(router), 1000 ether);
+        testToken1.approve(address(router), 10000000000000000000 ether);
+        testToken2.approve(address(router), 10000000000000000000 ether);
         uint expectedLiquidity = router.addLiquidity(
             address(testToken1),
             address(testToken2),
-            10 ether,
-            10 ether,
+            10000000000 ether,
+            10000000000 ether,
             10 ether
         );
 
@@ -113,15 +111,30 @@ contract RouterTest is SetUp {
         uint amountB,
         uint allowedRatio
     ) public {
-        vm.assume(amountA <= 990 ether && amountA > 0);
-        vm.assume(amountB <= 990 ether && amountB > 0);
-        vm.assume(allowedRatio <= 1 ether);
+        vm.assume(amountA <= 1000000000000000000 ether && amountA > 0);
+        vm.assume(amountB <= 1000000000000000000 ether && amountB > 0);
+        allowedRatio = allowedRatio % 1 ether;
+        bool writeValues = false;
+
+        //data to print
+        string[] memory allCSVData = new string[](4);
+        allCSVData[1] = convertUintToString(amountA);
+        allCSVData[2] = convertUintToString(amountB);
+        allCSVData[3] = convertUintToString(allowedRatio);
+
         //add initial liquidity into pool 1:1
         testAddLiquidity();
         uint currentRatio = (amountA * 1e18) / amountB;
         uint minRatio = allowedRatio > 1 ether ? 0 : 1 ether - allowedRatio;
         vm.startPrank(tester);
         if (currentRatio > 1 ether + allowedRatio || currentRatio < minRatio) {
+            if (writeValues) {
+                allCSVData[0] = "fail";
+                writeToCSV(
+                    "testFiles/test.txt",
+                    convertArrayOfStringsToCSVLine(allCSVData)
+                );
+            }
             vm.expectRevert();
             router.addLiquidity(
                 address(testToken1),
@@ -130,8 +143,14 @@ contract RouterTest is SetUp {
                 amountB,
                 allowedRatio
             );
-            failedTests++;
         } else {
+            if (writeValues) {
+                allCSVData[0] = "success";
+                writeToCSV(
+                    "testFiles/test.txt",
+                    convertArrayOfStringsToCSVLine(allCSVData)
+                );
+            }
             router.addLiquidity(
                 address(testToken1),
                 address(testToken2),
@@ -139,13 +158,6 @@ contract RouterTest is SetUp {
                 amountB,
                 allowedRatio
             );
-            success++;
         }
-        console2.log("test");
-    }
-
-    function printFails() internal {
-        console.log("success: ", success);
-        console.log("failed: ", failedTests);
     }
 }

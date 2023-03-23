@@ -16,7 +16,17 @@ contract Router {
 
     //methods
 
-    //add liquidity 
+
+    /**
+     * @notice  Adds liquidity to the pair with the specified token addresses
+     * @dev     Creates new pair if one does not exist
+     * @param   tokenA  Address of tokenA in pair
+     * @param   tokenB  Address of tokenB in pair
+     * @param   amtA  Amount of tokenA
+     * @param   amtB  Amount of tokenB
+     * @param   slippageRatio  Allowed slippage ratio to add liquidity
+     * @return  uint  Amount of LP tokens recieved after adding liquidity
+     */
     function addLiquidity(address tokenA, address tokenB, uint amtA, uint amtB, uint slippageRatio) public returns (uint) {
         // which pool?
         IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(tokenA, tokenB));
@@ -45,8 +55,10 @@ contract Router {
     } 
 
     //remove liquidity 
+    function removeLiquidity(address pair, uint amount) public returns (uint, uint) {
+
+    }
 
     //swap
 
-    //_create pair
 }
