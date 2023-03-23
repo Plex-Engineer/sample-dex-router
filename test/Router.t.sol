@@ -14,12 +14,14 @@ contract SetUp is Test, CSVWriter {
     UniswapV2Factory factory;
     Router router;
 
+    uint STARTING_BALANCE = 10000000000000000000 ether;
+
     address tester = address(0x1234);
 
     function setUp() public virtual {
         vm.startPrank(tester);
-        testToken1 = new TestERC20("test1", "T1", 18);
-        testToken2 = new TestERC20("test2", "T2", 18);
+        testToken1 = new TestERC20("test1", "T1", 18, STARTING_BALANCE);
+        testToken2 = new TestERC20("test2", "T2", 18, STARTING_BALANCE);
         factory = new UniswapV2Factory(msg.sender);
         router = new Router(address(factory));
         vm.stopPrank();
@@ -27,6 +29,28 @@ contract SetUp is Test, CSVWriter {
 }
 
 contract RouterTest is SetUp {
+    function addLiquidity(
+        address swapper,
+        address tokenA,
+        address tokenB,
+        uint amtA,
+        uint amtB,
+        uint slippageRatio
+    ) internal returns (uint) {
+        vm.startPrank(swapper);
+        testToken1.approve(address(router), STARTING_BALANCE);
+        testToken2.approve(address(router), STARTING_BALANCE);
+        uint liquidity = router.addLiquidity(
+            address(tokenA),
+            address(tokenB),
+            amtA,
+            amtB,
+            slippageRatio
+        );
+        vm.stopPrank();
+        return liquidity;
+    }
+
     function testNeedAllowance() public {
         vm.startPrank(tester);
         //will revert since no allowance was set
@@ -42,17 +66,14 @@ contract RouterTest is SetUp {
     }
 
     function testAddLiquidity() public {
-        vm.startPrank(tester);
-        testToken1.approve(address(router), 10000000000000000000 ether);
-        testToken2.approve(address(router), 10000000000000000000 ether);
-        uint expectedLiquidity = router.addLiquidity(
+        uint expectedLiquidity = addLiquidity(
+            tester,
             address(testToken1),
             address(testToken2),
             10000000000 ether,
             10000000000 ether,
             10 ether
         );
-
         address pair = factory.getPair(
             address(testToken1),
             address(testToken2)
@@ -63,24 +84,22 @@ contract RouterTest is SetUp {
     }
 
     function testMultipleAddLiquidity() public {
-        vm.startPrank(tester);
-        testToken1.approve(address(router), 1000 ether);
-        testToken2.approve(address(router), 1000 ether);
-        uint expectedLiquidity1 = router.addLiquidity(
+        uint expectedLiquidity1 = addLiquidity(
+            tester,
             address(testToken1),
             address(testToken2),
             10 ether,
             10 ether,
             10 ether
         );
-        uint expectedLiquidity2 = router.addLiquidity(
+        uint expectedLiquidity2 = addLiquidity(
+            tester,
             address(testToken1),
             address(testToken2),
             10 ether,
             10 ether,
             10 ether
         );
-        vm.stopPrank();
         address pair = factory.getPair(
             address(testToken1),
             address(testToken2)
@@ -159,5 +178,35 @@ contract RouterTest is SetUp {
                 allowedRatio
             );
         }
+    }
+
+    function testRemoveLiquidity() public {
+        testAddLiquidity();
+        vm.startPrank(tester);
+        IUniswapV2Pair pair = IUniswapV2Pair(
+            factory.getPair(address(testToken1), address(testToken2))
+        );
+        pair.approve(address(router), STARTING_BALANCE);
+        uint balanceOfLP = pair.balanceOf(tester);
+        router.removeLiquidity(address(pair), balanceOfLP);
+        assertEq(pair.balanceOf(tester), 0);
+        assert(testToken1.balanceOf(address(pair)) > 0);
+        assert(testToken2.balanceOf(address(pair)) > 0);
+        //shouln't be able to do this again
+        vm.expectRevert();
+        router.removeLiquidity(address(pair), balanceOfLP);
+    }
+
+    function testSwap() public {
+        addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            10000 ether,
+            10000 ether,
+            10 ether
+        );
+        vm.startPrank(tester);
+        router.swap(address(testToken1), address(testToken2), 10 ether, 0);
     }
 }
