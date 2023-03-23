@@ -26,6 +26,9 @@ contract SetUp is Test {
 }
 
 contract RouterTest is SetUp {
+    uint failedTests;
+    uint success;
+
     function testNeedAllowance() public {
         vm.startPrank(tester);
         //will revert since no allowance was set
@@ -90,18 +93,59 @@ contract RouterTest is SetUp {
         );
     }
 
-    // function testAddLiquidityWithWrongRatio() public {
-    //     //add initial liquidity into pool
-    //     testAddLiquidity();
-    //     //pool ratio is 1:1, we will try 2:1
-    //     // vm.expectRevert();
-    //     vm.startPrank(tester);
-    //     router.addLiquidity(
-    //         address(testToken1),
-    //         address(testToken2),
-    //         20 ether,
-    //         10 ether,
-    //         10 ether
-    //     );
-    // }
+    function testAddLiquidityWithWrongRatio() public {
+        //add initial liquidity into pool
+        testAddLiquidity();
+        //pool ratio is 1:1, we will try 2:1
+        vm.expectRevert();
+        vm.startPrank(tester);
+        router.addLiquidity(
+            address(testToken1),
+            address(testToken2),
+            20 ether,
+            10 ether,
+            0.1 ether
+        );
+    }
+
+    function testFuzzLiquidityAmounts(
+        uint amountA,
+        uint amountB,
+        uint allowedRatio
+    ) public {
+        vm.assume(amountA <= 990 ether && amountA > 0);
+        vm.assume(amountB <= 990 ether && amountB > 0);
+        vm.assume(allowedRatio <= 1 ether);
+        //add initial liquidity into pool 1:1
+        testAddLiquidity();
+        uint currentRatio = (amountA * 1e18) / amountB;
+        uint minRatio = allowedRatio > 1 ether ? 0 : 1 ether - allowedRatio;
+        vm.startPrank(tester);
+        if (currentRatio > 1 ether + allowedRatio || currentRatio < minRatio) {
+            vm.expectRevert();
+            router.addLiquidity(
+                address(testToken1),
+                address(testToken2),
+                amountA,
+                amountB,
+                allowedRatio
+            );
+            failedTests++;
+        } else {
+            router.addLiquidity(
+                address(testToken1),
+                address(testToken2),
+                amountA,
+                amountB,
+                allowedRatio
+            );
+            success++;
+        }
+        console2.log("test");
+    }
+
+    function printFails() internal {
+        console.log("success: ", success);
+        console.log("failed: ", failedTests);
+    }
 }

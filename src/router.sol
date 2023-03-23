@@ -29,9 +29,9 @@ contract Router {
             
             // if abs( amtA/amtB - realReserveRatio ) > slippageRatio, revert
             uint userRatio = amtA * 1e18 / amtB;
-            uint realRatio = reserveA * 1e18 / reserveB;
+            uint realRatio = uint(reserveA) * 1e18 / uint(reserveB);
             uint delta = stdMath.percentDelta(userRatio, realRatio);
-            require(delta > slippageRatio, "Router::addLiquidity: Slippage is too high"); 
+            require(delta <= slippageRatio, "Router::addLiquidity: Slippage is too high"); 
         }
 
         //add liquidity to new pair
