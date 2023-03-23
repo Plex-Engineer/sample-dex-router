@@ -105,9 +105,9 @@ contract Router is Script{
         uint reserveB = pair.token1() == tokenB ? uint(reserve1) : uint(reserve0);
         //get currentk value
         uint currentK = reserveA * reserveB;
-        uint expectedReserveB = ((reserveA + amtA) * 1e18) / currentK;
-        uint expectedBOut = reserveB - expectedReserveB / 1e18;
-        console.log(expectedBOut);
+        uint expectedReserveB = currentK / (reserveA + amtA);
+        uint expectedBOut_noFee = reserveB - expectedReserveB;
+        uint expectedBOut = expectedBOut_noFee * 997 / 1000;
         require(
             expectedBOut >= minAmtB,
             "Router::removeLiquidity: EXPECTED_TOKEN_B_TOO_HIGH"
