@@ -3,15 +3,20 @@ pragma solidity ^0.8.18;
 import "src/uniswap/interfaces/IUniswapV2Factory.sol";
 import "src/uniswap/interfaces/IUniswapV2Pair.sol";
 import "src/uniswap/interfaces/IUniswapV2ERC20.sol";
+import "src/velodrome/interfaces/IPair.sol";
+import "src/velodrome/interfaces/IPairFactory.sol";
+
 import "forge-std/StdMath.sol";
 
 contract Router {
     //state variables
     IUniswapV2Factory uniswapFactory;
+    address velodromeFactory;
 
     //constructor
-    constructor(address _factory) {
+    constructor(address _factory, address _velodromeFactory) {
         uniswapFactory = IUniswapV2Factory(_factory);
+        velodromeFactory = _velodromeFactory;
     }
 
     /**
@@ -148,5 +153,31 @@ contract Router {
         );
         pair.swap(0, expectedBOut, msg.sender, "");
         return expectedBOut;
+    }
+
+    function velodromeAddLiquidity(address tokenA, address tokenB, uint amtA, uint amtB, uint slippageRatio, bool stable) public returns (uint) {
+        IPairFactory velodromeFactoryObj = IPairFactory(velodromeFactory);
+        address pairAddress = velodromeFactoryObj.getPair(tokenA, tokenB, stable);
+
+        if (velodromeFactoryObj.isPair(pairAddress)) {
+            // getReserves
+            (uint reserveA, uint reserveB, ) = IPair(pairAddress).getReserves();
+
+            // if abs( amtA/amtB - realReserveRatio ) > slippageRatio, revert
+            uint userRatio = (amtA * 1e18) / amtB;
+            uint realRatio = (uint(reserveA) * 1e18) / uint(reserveB);
+            uint delta = stdMath.percentDelta(userRatio, realRatio);
+            require(
+                delta <= slippageRatio,
+                "Router::addLiquidity: Slippage is too high"
+            );
+        } else {
+            pairAddress = velodromeFactoryObj.createPair(tokenA, tokenB, stable);
+        }
+
+        IUniswapV2ERC20(tokenA).transferFrom(msg.sender, pairAddress, amtA);
+        IUniswapV2ERC20(tokenB).transferFrom(msg.sender, pairAddress, amtB);
+
+        return IPair(pairAddress).mint(msg.sender);
     }
 }

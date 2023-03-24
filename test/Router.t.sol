@@ -6,12 +6,16 @@ import "src/testERC20.sol";
 import "src/uniswap/UniswapV2Factory.sol";
 import "src/router.sol";
 import "src/uniswap/interfaces/IUniswapV2Pair.sol";
+import "src/velodrome/factories/PairFactory.sol";
+import {Pair} from "src/velodrome/Pair.sol";
+
 import "script/csvWriter.s.sol";
 
 contract SetUp is Test, CSVWriter {
     TestERC20 testToken1;
     TestERC20 testToken2;
     UniswapV2Factory factory;
+    PairFactory velodromeFactory;
     Router router;
 
     uint STARTING_BALANCE = 10000000000000000000 ether;
@@ -23,12 +27,13 @@ contract SetUp is Test, CSVWriter {
         testToken1 = new TestERC20("test1", "T1", 18, STARTING_BALANCE);
         testToken2 = new TestERC20("test2", "T2", 18, STARTING_BALANCE);
         factory = new UniswapV2Factory(msg.sender);
-        router = new Router(address(factory));
+        velodromeFactory = new PairFactory();
+        router = new Router(address(factory), address(velodromeFactory));
         vm.stopPrank();
     }
 }
 
-contract RouterTest is SetUp {
+contract UniswapRouterTest is SetUp {
     function addLiquidity(
         address swapper,
         address tokenA,
@@ -222,3 +227,49 @@ contract RouterTest is SetUp {
         router.uniswapSwap(address(testToken1), address(testToken2), 10 ether, 0);
     }
 }
+
+contract VelodromeRouterTest is SetUp {
+    function addLiquidity(
+        address swapper,
+        address tokenA,
+        address tokenB,
+        uint amtA,
+        uint amtB,
+        uint slippageRatio,
+        bool stable
+    ) internal returns (uint) {
+        vm.startPrank(swapper);
+        testToken1.approve(address(router), STARTING_BALANCE);
+        testToken2.approve(address(router), STARTING_BALANCE);
+        uint liquidity = router.velodromeAddLiquidity(
+            address(tokenA),
+            address(tokenB),
+            amtA,
+            amtB,
+            slippageRatio,
+            stable
+        );
+        vm.stopPrank();
+        return liquidity;
+    }
+
+    function testAddLiquidityVelodrome() public {
+        uint expectedLiquidity = addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            10000000000 ether,
+            10000000000 ether,
+            10 ether,
+            true
+        );
+        address pair = velodromeFactory.getPair(
+            address(testToken1),
+            address(testToken2),
+            true
+        );
+        vm.stopPrank();
+        assert(pair != address(0));
+        assertEq(Pair(pair).balanceOf(tester), expectedLiquidity);
+    }
+}   

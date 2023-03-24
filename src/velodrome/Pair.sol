@@ -89,7 +89,7 @@ contract Pair is IPair {
 
     constructor() {
         factory = msg.sender;
-        (address _token0, address _token1, bool _stable) = PairFactory(msg.sender).getInitializable();
+        (address _token0, address _token1, bool _stable) = PairFactory(msg.sender).getInitializable(); //check gas efficiency
         (token0, token1, stable) = (_token0, _token1, _stable);
         fees = address(new PairFees(_token0, _token1));
         if (_stable) {
