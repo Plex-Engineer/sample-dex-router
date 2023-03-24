@@ -224,7 +224,12 @@ contract UniswapRouterTest is SetUp {
             10 ether
         );
         vm.startPrank(tester);
-        router.uniswapSwap(address(testToken1), address(testToken2), 10 ether, 0);
+        router.uniswapSwap(
+            address(testToken1),
+            address(testToken2),
+            10 ether,
+            0
+        );
     }
 }
 
@@ -272,4 +277,163 @@ contract VelodromeRouterTest is SetUp {
         assert(pair != address(0));
         assertEq(Pair(pair).balanceOf(tester), expectedLiquidity);
     }
-}   
+
+    function testAddMultipleLiquidityVelodrome() public {
+        uint expectedLiquidity1 = addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            10000000000 ether,
+            10000000000 ether,
+            10 ether,
+            true
+        );
+        uint expectedLiquidity2 = addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            10000000000 ether,
+            10000000000 ether,
+            10 ether,
+            true
+        );
+        address pair = velodromeFactory.getPair(
+            address(testToken1),
+            address(testToken2),
+            true
+        );
+        vm.stopPrank();
+        assert(pair != address(0));
+        assertEq(
+            Pair(pair).balanceOf(tester),
+            expectedLiquidity1 + expectedLiquidity2
+        );
+    }
+
+    function testRemoveLiquidityVelodrome() public {
+        addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            10000000000 ether,
+            10000000000 ether,
+            10 ether,
+            true
+        );
+        vm.startPrank(tester);
+        Pair pair = Pair(
+            velodromeFactory.getPair(
+                address(testToken1),
+                address(testToken2),
+                true
+            )
+        );
+        pair.approve(address(router), STARTING_BALANCE);
+        uint balanceOfLP = pair.balanceOf(tester);
+        router.velodromeRemoveLiquidity(
+            address(testToken1),
+            address(testToken2),
+            true,
+            balanceOfLP,
+            0,
+            0
+        );
+        assertEq(pair.balanceOf(tester), 0);
+        assert(testToken1.balanceOf(address(pair)) > 0);
+        assert(testToken2.balanceOf(address(pair)) > 0);
+        //shouln't be able to do this again
+        vm.expectRevert();
+        router.uniswapRemoveLiquidity(
+            address(testToken1),
+            address(testToken2),
+            balanceOfLP,
+            0,
+            0
+        );
+    }
+
+    function testFuzzLiquidityAmounts(
+        uint amountA,
+        uint amountB,
+        uint allowedRatio
+    ) public {
+        vm.assume(amountA <= 1000000000000000000 ether && amountA > 0);
+        vm.assume(amountB <= 1000000000000000000 ether && amountB > 0);
+        allowedRatio = allowedRatio % 1 ether;
+        bool writeValues = false;
+
+        //data to print
+        string[] memory allCSVData = new string[](4);
+        allCSVData[1] = convertUintToString(amountA);
+        allCSVData[2] = convertUintToString(amountB);
+        allCSVData[3] = convertUintToString(allowedRatio);
+
+        //add initial liquidity into pool 1:1
+        addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            10000000000 ether,
+            10000000000 ether,
+            10 ether,
+            true
+        );
+        uint currentRatio = (amountA * 1e18) / amountB;
+        uint minRatio = allowedRatio > 1 ether ? 0 : 1 ether - allowedRatio;
+        vm.startPrank(tester);
+        if (currentRatio > 1 ether + allowedRatio || currentRatio < minRatio) {
+            if (writeValues) {
+                allCSVData[0] = "fail";
+                writeToCSV(
+                    "testFiles/test.txt",
+                    convertArrayOfStringsToCSVLine(allCSVData)
+                );
+            }
+            vm.expectRevert();
+            router.velodromeAddLiquidity(
+                address(testToken1),
+                address(testToken2),
+                amountA,
+                amountB,
+                allowedRatio,
+                true
+            );
+        } else {
+            if (writeValues) {
+                allCSVData[0] = "success";
+                writeToCSV(
+                    "testFiles/test.txt",
+                    convertArrayOfStringsToCSVLine(allCSVData)
+                );
+            }
+            router.velodromeAddLiquidity(
+                address(testToken1),
+                address(testToken2),
+                amountA,
+                amountB,
+                allowedRatio,
+                true
+            );
+        }
+    }
+
+    function testSingleVelodromeSwap() public {
+        addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            10000 ether,
+            10000 ether,
+            10 ether,
+            true
+        );
+        vm.startPrank(tester);
+        router.velodromeSwap(
+            address(testToken1),
+            address(testToken2),
+            true,
+            10 ether,
+            0
+        );
+    }
+}

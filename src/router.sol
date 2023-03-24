@@ -48,7 +48,9 @@ contract Router {
             "Router::addLiquidity: TOKENB_ADDRESS_ZERO"
         );
         // which pool?
-        IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(tokenA, tokenB));
+        IUniswapV2Pair pair = IUniswapV2Pair(
+            uniswapFactory.getPair(tokenA, tokenB)
+        );
         if (address(pair) == address(0)) {
             //create pair
             pair = IUniswapV2Pair(uniswapFactory.createPair(tokenA, tokenB));
@@ -74,7 +76,6 @@ contract Router {
         return IUniswapV2Pair(pair).mint(msg.sender);
     }
 
-    
     /**
      * @notice  Removes liquidity from uniswap pair
      * @dev     Pair must exist
@@ -93,7 +94,9 @@ contract Router {
         uint amountAmin,
         uint amountBmin
     ) public returns (uint amountA, uint amountB) {
-        IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(tokenA, tokenB));
+        IUniswapV2Pair pair = IUniswapV2Pair(
+            uniswapFactory.getPair(tokenA, tokenB)
+        );
         require(
             address(pair) != address(0),
             "Router::removeLiquidity: TOKEN_ADDRESS_ZERO"
@@ -104,10 +107,15 @@ contract Router {
         (amountA, amountB) = tokenA == pair.token0()
             ? (amount0, amount1)
             : (amount1, amount0);
-        require(amountA >= amountAmin, "Router::removeLiquidity: INSUFFICIENT_AMOUNT_A");
-        require(amountB >= amountBmin, "Router::removeLiquidity: INSUFFICIENT_AMOUNT_B");
+        require(
+            amountA >= amountAmin,
+            "Router::removeLiquidity: INSUFFICIENT_AMOUNT_A"
+        );
+        require(
+            amountB >= amountBmin,
+            "Router::removeLiquidity: INSUFFICIENT_AMOUNT_B"
+        );
     }
-
 
     /**
      * @notice  Swaps in uniswap pair
@@ -125,7 +133,9 @@ contract Router {
         uint minAmtB
     ) public returns (uint) {
         //find pair
-        IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(tokenA, tokenB));
+        IUniswapV2Pair pair = IUniswapV2Pair(
+            uniswapFactory.getPair(tokenA, tokenB)
+        );
         require(
             address(pair) != address(0),
             "Router::swap: PAIR_DOES_NOT_EXIST"
@@ -155,9 +165,20 @@ contract Router {
         return expectedBOut;
     }
 
-    function velodromeAddLiquidity(address tokenA, address tokenB, uint amtA, uint amtB, uint slippageRatio, bool stable) public returns (uint) {
+    function velodromeAddLiquidity(
+        address tokenA,
+        address tokenB,
+        uint amtA,
+        uint amtB,
+        uint slippageRatio,
+        bool stable
+    ) public returns (uint) {
         IPairFactory velodromeFactoryObj = IPairFactory(velodromeFactory);
-        address pairAddress = velodromeFactoryObj.getPair(tokenA, tokenB, stable);
+        address pairAddress = velodromeFactoryObj.getPair(
+            tokenA,
+            tokenB,
+            stable
+        );
 
         if (velodromeFactoryObj.isPair(pairAddress)) {
             // getReserves
@@ -172,12 +193,71 @@ contract Router {
                 "Router::addLiquidity: Slippage is too high"
             );
         } else {
-            pairAddress = velodromeFactoryObj.createPair(tokenA, tokenB, stable);
+            pairAddress = velodromeFactoryObj.createPair(
+                tokenA,
+                tokenB,
+                stable
+            );
         }
 
         IUniswapV2ERC20(tokenA).transferFrom(msg.sender, pairAddress, amtA);
         IUniswapV2ERC20(tokenB).transferFrom(msg.sender, pairAddress, amtB);
 
         return IPair(pairAddress).mint(msg.sender);
+    }
+
+    function velodromeRemoveLiquidity(
+        address tokenA,
+        address tokenB,
+        bool stable,
+        uint liquidity,
+        uint amountAmin,
+        uint amountBmin
+    ) public returns (uint amountA, uint amountB) {
+        IPair pair = IPair(
+            IPairFactory(velodromeFactory).getPair(tokenA, tokenB, stable)
+        );
+        require(
+            address(pair) != address(0),
+            "Router::removeLiquidity: PAIR_DOES_NOT_EXIST"
+        );
+        //send LP tokens to pair
+        pair.transferFrom(msg.sender, address(pair), liquidity);
+        (uint amount0, uint amount1) = pair.burn(msg.sender);
+        (amountA, amountB) = tokenA == pair.token0()
+            ? (amount0, amount1)
+            : (amount1, amount0);
+        require(
+            amountA >= amountAmin,
+            "Router::removeLiquidity: INSUFFICIENT_AMOUNT_A"
+        );
+        require(
+            amountB >= amountBmin,
+            "Router::removeLiquidity: INSUFFICIENT_AMOUNT_B"
+        );
+    }
+
+    function velodromeSwap(
+        address tokenA,
+        address tokenB,
+        bool stable,
+        uint amtA,
+        uint minAmtB
+    ) public returns (uint) {
+        IPair pair = IPair(
+            IPairFactory(velodromeFactory).getPair(tokenA, tokenB, stable)
+        );
+        require(
+            address(pair) != address(0),
+            "Router::removeLiquidity: PAIR_DOES_NOT_EXIST"
+        );
+        uint expectedB = pair.getAmountOut(amtA, tokenA);
+        require(
+            expectedB >= minAmtB,
+            "Router::removeLiquidity: EXPECTED_TOKEN_B_TOO_HIGH"
+        );
+        IUniswapV2ERC20(tokenA).transferFrom(msg.sender, address(pair), amtA);
+        pair.swap(0, expectedB, msg.sender, "");
+        return expectedB;
     }
 }
