@@ -3,9 +3,9 @@ pragma solidity ^0.8.18;
 import "forge-std/Test.sol";
 import "forge-std/Script.sol";
 import "src/testERC20.sol";
-import "src/UniswapV2Factory.sol";
+import "src/uniswap/UniswapV2Factory.sol";
 import "src/router.sol";
-import "src/interfaces/IUniswapV2Pair.sol";
+import "src/uniswap/interfaces/IUniswapV2Pair.sol";
 import "script/csvWriter.s.sol";
 
 contract SetUp is Test, CSVWriter {
@@ -40,7 +40,7 @@ contract RouterTest is SetUp {
         vm.startPrank(swapper);
         testToken1.approve(address(router), STARTING_BALANCE);
         testToken2.approve(address(router), STARTING_BALANCE);
-        uint liquidity = router.addLiquidity(
+        uint liquidity = router.uniswapAddLiquidity(
             address(tokenA),
             address(tokenB),
             amtA,
@@ -55,7 +55,7 @@ contract RouterTest is SetUp {
         vm.startPrank(tester);
         //will revert since no allowance was set
         vm.expectRevert();
-        router.addLiquidity(
+        router.uniswapAddLiquidity(
             address(testToken1),
             address(testToken2),
             50 ether,
@@ -116,7 +116,7 @@ contract RouterTest is SetUp {
         //pool ratio is 1:1, we will try 2:1
         vm.expectRevert();
         vm.startPrank(tester);
-        router.addLiquidity(
+        router.uniswapAddLiquidity(
             address(testToken1),
             address(testToken2),
             20 ether,
@@ -155,7 +155,7 @@ contract RouterTest is SetUp {
                 );
             }
             vm.expectRevert();
-            router.addLiquidity(
+            router.uniswapAddLiquidity(
                 address(testToken1),
                 address(testToken2),
                 amountA,
@@ -170,7 +170,7 @@ contract RouterTest is SetUp {
                     convertArrayOfStringsToCSVLine(allCSVData)
                 );
             }
-            router.addLiquidity(
+            router.uniswapAddLiquidity(
                 address(testToken1),
                 address(testToken2),
                 amountA,
@@ -188,7 +188,7 @@ contract RouterTest is SetUp {
         );
         pair.approve(address(router), STARTING_BALANCE);
         uint balanceOfLP = pair.balanceOf(tester);
-        router.removeLiquidity(
+        router.uniswapRemoveLiquidity(
             address(testToken1),
             address(testToken2),
             balanceOfLP,
@@ -200,7 +200,7 @@ contract RouterTest is SetUp {
         assert(testToken2.balanceOf(address(pair)) > 0);
         //shouln't be able to do this again
         vm.expectRevert();
-        router.removeLiquidity(
+        router.uniswapRemoveLiquidity(
             address(testToken1),
             address(testToken2),
             balanceOfLP,
@@ -219,6 +219,6 @@ contract RouterTest is SetUp {
             10 ether
         );
         vm.startPrank(tester);
-        router.swap(address(testToken1), address(testToken2), 10 ether, 0);
+        router.uniswapSwap(address(testToken1), address(testToken2), 10 ether, 0);
     }
 }

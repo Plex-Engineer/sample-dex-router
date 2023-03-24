@@ -1,23 +1,24 @@
 pragma solidity ^0.8.18;
 
-import "./interfaces/IUniswapV2Factory.sol";
-import "./interfaces/IUniswapV2Pair.sol";
-import "./interfaces/IUniswapV2ERC20.sol";
+import "src/uniswap/interfaces/IUniswapV2Factory.sol";
+import "src/uniswap/interfaces/IUniswapV2Pair.sol";
+import "src/uniswap/interfaces/IUniswapV2ERC20.sol";
 import "forge-std/StdMath.sol";
 
 contract Router {
     //state variables
-    IUniswapV2Factory factory;
+    IUniswapV2Factory uniswapFactory;
 
     //constructor
     constructor(address _factory) {
-        factory = IUniswapV2Factory(_factory);
+        uniswapFactory = IUniswapV2Factory(_factory);
     }
 
-    //methods
-
     /**
-     * @notice  Adds liquidity to the pair with the specified token addresses
+     * UNISWAP METHODS
+     */
+    /**
+     * @notice  Adds liquidity to the uniswap pair
      * @dev     Creates new pair if one does not exist
      * @param   tokenA  Address of tokenA in pair
      * @param   tokenB  Address of tokenB in pair
@@ -26,7 +27,7 @@ contract Router {
      * @param   slippageRatio  Allowed slippage ratio to add liquidity
      * @return  uint  Amount of LP tokens recieved after adding liquidity
      */
-    function addLiquidity(
+    function uniswapAddLiquidity(
         address tokenA,
         address tokenB,
         uint amtA,
@@ -42,10 +43,10 @@ contract Router {
             "Router::addLiquidity: TOKENB_ADDRESS_ZERO"
         );
         // which pool?
-        IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(tokenA, tokenB));
+        IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(tokenA, tokenB));
         if (address(pair) == address(0)) {
             //create pair
-            pair = IUniswapV2Pair(factory.createPair(tokenA, tokenB));
+            pair = IUniswapV2Pair(uniswapFactory.createPair(tokenA, tokenB));
         } else {
             // getReserves
             (uint112 reserveA, uint112 reserveB, ) = pair.getReserves();
@@ -68,15 +69,26 @@ contract Router {
         return IUniswapV2Pair(pair).mint(msg.sender);
     }
 
-    //remove liquidity
-    function removeLiquidity(
+    
+    /**
+     * @notice  Removes liquidity from uniswap pair
+     * @dev     Pair must exist
+     * @param   tokenA  TokenA of pair
+     * @param   tokenB  TokenB of pair
+     * @param   liquidity  Amount of LP tokens to burn
+     * @param   amountAmin  Amount of token A minumum to receive
+     * @param   amountBmin  Amount of token B minumum to receive
+     * @return  amountA  Amount of token A received
+     * @return  amountB  Amount of token B recieved
+     */
+    function uniswapRemoveLiquidity(
         address tokenA,
         address tokenB,
         uint liquidity,
         uint amountAmin,
         uint amountBmin
     ) public returns (uint amountA, uint amountB) {
-        IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(tokenA, tokenB));
+        IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(tokenA, tokenB));
         require(
             address(pair) != address(0),
             "Router::removeLiquidity: TOKEN_ADDRESS_ZERO"
@@ -89,18 +101,26 @@ contract Router {
             : (amount1, amount0);
         require(amountA >= amountAmin, "Router::removeLiquidity: INSUFFICIENT_AMOUNT_A");
         require(amountB >= amountBmin, "Router::removeLiquidity: INSUFFICIENT_AMOUNT_B");
-
     }
 
-    //swap
-    function swap(
+
+    /**
+     * @notice  Swaps in uniswap pair
+     * @dev     Only can swap if the pair exists
+     * @param   tokenA  Token A of pair
+     * @param   tokenB  Token B of pair
+     * @param   amtA  Amount of Token A to swap
+     * @param   minAmtB  Min amount B to receive
+     * @return  uint  Amount of B received
+     */
+    function uniswapSwap(
         address tokenA,
         address tokenB,
         uint amtA,
         uint minAmtB
     ) public returns (uint) {
         //find pair
-        IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(tokenA, tokenB));
+        IUniswapV2Pair pair = IUniswapV2Pair(uniswapFactory.getPair(tokenA, tokenB));
         require(
             address(pair) != address(0),
             "Router::swap: PAIR_DOES_NOT_EXIST"
