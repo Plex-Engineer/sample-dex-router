@@ -188,16 +188,28 @@ contract RouterTest is SetUp {
         );
         pair.approve(address(router), STARTING_BALANCE);
         uint balanceOfLP = pair.balanceOf(tester);
-        router.removeLiquidity(address(pair), balanceOfLP);
+        router.removeLiquidity(
+            address(testToken1),
+            address(testToken2),
+            balanceOfLP,
+            0,
+            0
+        );
         assertEq(pair.balanceOf(tester), 0);
         assert(testToken1.balanceOf(address(pair)) > 0);
         assert(testToken2.balanceOf(address(pair)) > 0);
         //shouln't be able to do this again
         vm.expectRevert();
-        router.removeLiquidity(address(pair), balanceOfLP);
+        router.removeLiquidity(
+            address(testToken1),
+            address(testToken2),
+            balanceOfLP,
+            0,
+            0
+        );
     }
 
-    function testSwap() public {
+    function testSingleSwap() public {
         addLiquidity(
             tester,
             address(testToken1),

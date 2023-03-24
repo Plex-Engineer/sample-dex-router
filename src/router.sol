@@ -4,9 +4,8 @@ import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Pair.sol";
 import "./interfaces/IUniswapV2ERC20.sol";
 import "forge-std/StdMath.sol";
-import "forge-std/Script.sol";
 
-contract Router is Script{
+contract Router {
     //state variables
     IUniswapV2Factory factory;
 
@@ -71,17 +70,26 @@ contract Router is Script{
 
     //remove liquidity
     function removeLiquidity(
-        address _pair,
-        uint _amount
-    ) public returns (uint, uint) {
+        address tokenA,
+        address tokenB,
+        uint liquidity,
+        uint amountAmin,
+        uint amountBmin
+    ) public returns (uint amountA, uint amountB) {
+        IUniswapV2Pair pair = IUniswapV2Pair(factory.getPair(tokenA, tokenB));
         require(
-            _pair != address(0),
+            address(pair) != address(0),
             "Router::removeLiquidity: TOKEN_ADDRESS_ZERO"
         );
         //send LP tokens to pair
-        IUniswapV2Pair pair = IUniswapV2Pair(_pair);
-        pair.transferFrom(msg.sender, address(pair), _amount);
-        return pair.burn(msg.sender);
+        pair.transferFrom(msg.sender, address(pair), liquidity);
+        (uint amount0, uint amount1) = pair.burn(msg.sender);
+        (amountA, amountB) = tokenA == pair.token0()
+            ? (amount0, amount1)
+            : (amount1, amount0);
+        require(amountA >= amountAmin, "Router::removeLiquidity: INSUFFICIENT_AMOUNT_A");
+        require(amountB >= amountBmin, "Router::removeLiquidity: INSUFFICIENT_AMOUNT_B");
+
     }
 
     //swap
@@ -97,22 +105,27 @@ contract Router is Script{
             address(pair) != address(0),
             "Router::swap: PAIR_DOES_NOT_EXIST"
         );
+        //tranfer first just in case this fails
+        IUniswapV2ERC20(tokenA).transferFrom(msg.sender, address(pair), amtA);
         //figure out how much of tokenB to request from pair after sending amtA
         // getReserves
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         //check the token order inside pair so we can match the values
-        uint reserveA = pair.token0() == tokenA ? uint(reserve0) : uint(reserve1);
-        uint reserveB = pair.token1() == tokenB ? uint(reserve1) : uint(reserve0);
+        uint reserveA = pair.token0() == tokenA
+            ? uint(reserve0)
+            : uint(reserve1);
+        uint reserveB = pair.token1() == tokenB
+            ? uint(reserve1)
+            : uint(reserve0);
         //get currentk value
         uint currentK = reserveA * reserveB;
         uint expectedReserveB = currentK / (reserveA + amtA);
         uint expectedBOut_noFee = reserveB - expectedReserveB;
-        uint expectedBOut = expectedBOut_noFee * 997 / 1000;
+        uint expectedBOut = (expectedBOut_noFee * 997) / 1000;
         require(
             expectedBOut >= minAmtB,
             "Router::removeLiquidity: EXPECTED_TOKEN_B_TOO_HIGH"
         );
-        IUniswapV2ERC20(tokenA).transferFrom(msg.sender, address(pair), amtA);
         pair.swap(0, expectedBOut, msg.sender, "");
         return expectedBOut;
     }
