@@ -2,8 +2,8 @@
 pragma solidity >=0.8.13;
 
 import "src/velodrome/interfaces/IBribeFactory.sol";
-import 'contracts/InternalBribe.sol';
-import 'contracts/ExternalBribe.sol';
+import 'src/velodrome/InternalBribe.sol';
+import 'src/velodrome/ExternalBribe.sol';
 
 contract BribeFactory is IBribeFactory {
     address public last_internal_bribe;

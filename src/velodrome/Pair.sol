@@ -5,8 +5,8 @@ import 'src/velodrome/libraries/Math.sol';
 import 'src/velodrome/interfaces/IERC20.sol';
 import 'src/velodrome/interfaces/IPair.sol';
 import 'src/velodrome/interfaces/IPairCallee.sol';
-import 'contracts/factories/PairFactory.sol';
-import 'contracts/PairFees.sol';
+import 'src/velodrome/factories/PairFactory.sol';
+import 'src/velodrome/PairFees.sol';
 
 // The base pair of pools, either stable or volatile
 contract Pair is IPair {

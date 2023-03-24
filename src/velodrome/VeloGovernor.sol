@@ -4,10 +4,10 @@ pragma solidity >=0.8.13;
 import {IGovernor} from "openzeppelin-contracts/contracts/governance/IGovernor.sol";
 import {IVotes} from "openzeppelin-contracts/contracts/governance/utils/IVotes.sol";
 
-import {L2Governor} from "contracts/governance/L2Governor.sol";
-import {L2GovernorCountingSimple} from "contracts/governance/L2GovernorCountingSimple.sol";
-import {L2GovernorVotes} from "contracts/governance/L2GovernorVotes.sol";
-import {L2GovernorVotesQuorumFraction} from "contracts/governance/L2GovernorVotesQuorumFraction.sol";
+import {L2Governor} from "src/velodrome/governance/L2Governor.sol";
+import {L2GovernorCountingSimple} from "src/velodrome/governance/L2GovernorCountingSimple.sol";
+import {L2GovernorVotes} from "src/velodrome/governance/L2GovernorVotes.sol";
+import {L2GovernorVotesQuorumFraction} from "src/velodrome/governance/L2GovernorVotesQuorumFraction.sol";
 
 contract VeloGovernor is
     L2Governor,

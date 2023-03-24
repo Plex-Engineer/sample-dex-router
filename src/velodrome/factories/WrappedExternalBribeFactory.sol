@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.13;
 
-import {WrappedExternalBribe} from 'contracts/WrappedExternalBribe.sol';
+import {WrappedExternalBribe} from 'src/velodrome/WrappedExternalBribe.sol';
 
 contract WrappedExternalBribeFactory {
     address public immutable voter;

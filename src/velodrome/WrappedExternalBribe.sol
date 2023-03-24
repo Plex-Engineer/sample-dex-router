@@ -2,7 +2,7 @@
 pragma solidity >=0.8.13;
 
 import 'src/velodrome/libraries/Math.sol';
-import 'contracts/ExternalBribe.sol';
+import 'src/velodrome/ExternalBribe.sol';
 import 'src/velodrome/interfaces/IERC20.sol';
 import 'src/velodrome/interfaces/IGauge.sol';
 import 'src/velodrome/interfaces/IVoter.sol';

@@ -2,7 +2,7 @@
 pragma solidity >=0.8.13;
 
 import 'src/velodrome/interfaces/IPairFactory.sol';
-import 'contracts/Pair.sol';
+import 'src/velodrome/Pair.sol';
 
 contract PairFactory is IPairFactory {
 

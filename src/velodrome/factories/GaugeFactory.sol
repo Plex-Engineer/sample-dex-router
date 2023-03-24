@@ -2,7 +2,7 @@
 pragma solidity >=0.8.13;
 
 import 'src/velodrome/interfaces/IGaugeFactory.sol';
-import 'contracts/Gauge.sol';
+import 'src/velodrome/Gauge.sol';
 
 contract GaugeFactory is IGaugeFactory {
     address public last_gauge;
