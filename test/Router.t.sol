@@ -19,6 +19,7 @@ contract SetUp is Test, CSVWriter {
     Router router;
 
     uint STARTING_BALANCE = 10000000000000000000 ether;
+    uint INITIAL_LIQUIDITY = 10000000000 ether;
 
     address tester = address(0x1234);
 
@@ -234,6 +235,19 @@ contract UniswapRouterTest is SetUp {
 }
 
 contract VelodromeRouterTest is SetUp {
+    modifier startWithLiquidity() {
+        addLiquidity(
+            tester,
+            address(testToken1),
+            address(testToken2),
+            INITIAL_LIQUIDITY,
+            INITIAL_LIQUIDITY,
+            100 ether,
+            true
+        );
+        _;
+    }
+
     function addLiquidity(
         address swapper,
         address tokenA,
@@ -310,16 +324,7 @@ contract VelodromeRouterTest is SetUp {
         );
     }
 
-    function testRemoveLiquidityVelodrome() public {
-        addLiquidity(
-            tester,
-            address(testToken1),
-            address(testToken2),
-            10000000000 ether,
-            10000000000 ether,
-            10 ether,
-            true
-        );
+    function testRemoveLiquidityVelodrome() public startWithLiquidity{
         vm.startPrank(tester);
         Pair pair = Pair(
             velodromeFactory.getPair(
@@ -417,22 +422,25 @@ contract VelodromeRouterTest is SetUp {
         }
     }
 
-    function testSingleVelodromeSwap() public {
-        addLiquidity(
-            tester,
-            address(testToken1),
-            address(testToken2),
-            10000 ether,
-            10000 ether,
-            10 ether,
-            true
-        );
+    function testSingleVelodromeSwap() public startWithLiquidity {
         vm.startPrank(tester);
         router.velodromeSwap(
             address(testToken1),
             address(testToken2),
             true,
             10 ether,
+            0
+        );
+    }
+
+    function testSwapping(uint amt) public startWithLiquidity {
+        vm.assume(amt > 1 ether && amt < INITIAL_LIQUIDITY);
+        vm.startPrank(tester);
+        router.velodromeSwap(
+            address(testToken1),
+            address(testToken2),
+            true,
+            amt,
             0
         );
     }

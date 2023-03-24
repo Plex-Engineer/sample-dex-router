@@ -159,7 +159,7 @@ contract Router {
         uint expectedBOut = (expectedBOut_noFee * 997) / 1000;
         require(
             expectedBOut >= minAmtB,
-            "Router::removeLiquidity: EXPECTED_TOKEN_B_TOO_HIGH"
+            "Router::swap: EXPECTED_TOKEN_B_TOO_HIGH"
         );
         pair.swap(0, expectedBOut, msg.sender, "");
         return expectedBOut;
@@ -249,12 +249,12 @@ contract Router {
         );
         require(
             address(pair) != address(0),
-            "Router::removeLiquidity: PAIR_DOES_NOT_EXIST"
+            "Router::swap: PAIR_DOES_NOT_EXIST"
         );
         uint expectedB = pair.getAmountOut(amtA, tokenA);
         require(
             expectedB >= minAmtB,
-            "Router::removeLiquidity: EXPECTED_TOKEN_B_TOO_HIGH"
+            "Router::swap: EXPECTED_TOKEN_B_TOO_HIGH"
         );
         IUniswapV2ERC20(tokenA).transferFrom(msg.sender, address(pair), amtA);
         pair.swap(0, expectedB, msg.sender, "");
