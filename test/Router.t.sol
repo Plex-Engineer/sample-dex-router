@@ -6,7 +6,7 @@ import "src/testERC20.sol";
 import "src/uniswap/UniswapV2Factory.sol";
 import "src/router.sol";
 import "src/uniswap/interfaces/IUniswapV2Pair.sol";
-import "src/velodrome/factories/PairFactory.sol";
+import {PairFactory} from "src/velodrome/factories/PairFactory.sol";
 import {Pair} from "src/velodrome/Pair.sol";
 
 import "script/csvWriter.s.sol";

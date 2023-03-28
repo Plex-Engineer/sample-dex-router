@@ -22,6 +22,15 @@ contract Router {
     /**
      * UNISWAP METHODS
      */
+    function getAllUniswapPairs() public view returns (address[] memory) {
+        uint pairsLength = uniswapFactory.allPairsLength();
+        address[] memory uniswapPairs = new address[](pairsLength);
+        for (uint i; i < pairsLength; i++) {
+            uniswapPairs[i] = uniswapFactory.allPairs(i);
+        }
+        return uniswapPairs;
+    }
+
     /**
      * @notice  Adds liquidity to the uniswap pair
      * @dev     Creates new pair if one does not exist
@@ -163,6 +172,18 @@ contract Router {
         );
         pair.swap(0, expectedBOut, msg.sender, "");
         return expectedBOut;
+    }
+
+    /**
+     * VELODROME METHODS
+     */
+    function getAllVelodromePairs() public view returns (address[] memory) {
+        uint pairsLength = IPairFactory(velodromeFactory).allPairsLength();
+        address[] memory velodromePairs = new address[](pairsLength);
+        for (uint i; i < pairsLength; i++) {
+            velodromePairs[i] = IPairFactory(velodromeFactory).allPairs(i);
+        }
+        return velodromePairs;
     }
 
     function velodromeAddLiquidity(
